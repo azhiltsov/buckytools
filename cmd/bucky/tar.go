@@ -14,7 +14,7 @@ import (
 )
 
 import "github.com/golang/crypto/ssh/terminal"
-import "github.com/jjneely/buckytools/metrics"
+import "github.com/Civil/buckytools/metrics"
 
 var metricWorkers int
 var workerErrors bool

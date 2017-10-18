@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-import "github.com/jjneely/buckytools/whisper"
+import "github.com/Civil/buckytools/whisper"
 
 // fillArchive() is a private function that fills data points from srcWSP
 // into dstWsp.  Used by FIll()
@@ -54,7 +54,7 @@ func fillArchive(srcWsp, dstWsp *whisper.Whisper, start, stop int) error {
 			}
 			tsStart += ts.Step()
 		}
-		dstWsp.UpdateMany(points)
+		dstWsp.UpdateManyWithRetention(points, v.MaxRetention())
 
 		stop = fromTime
 		if start >= stop {

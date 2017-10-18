@@ -12,8 +12,8 @@ import (
 )
 
 import (
-	"github.com/jjneely/buckytools"
-	"github.com/jjneely/buckytools/lock"
+	"github.com/Civil/buckytools"
+	"github.com/Civil/buckytools/lock"
 )
 
 // Command Line Flags

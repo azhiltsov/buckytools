@@ -9,8 +9,8 @@ import (
 	"strings"
 )
 
-import "github.com/jjneely/buckytools"
-import "github.com/jjneely/buckytools/fill"
+import "github.com/Civil/buckytools"
+import "github.com/Civil/buckytools/fill"
 
 var (
 	deleteSourceFiles bool
