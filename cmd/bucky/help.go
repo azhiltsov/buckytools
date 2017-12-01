@@ -5,7 +5,7 @@ import (
 	"os"
 )
 
-import . "github.com/Civil/buckytools"
+import . "github.com/azhiltsov/buckytools"
 
 func init() {
 	usage := "[sub-command]"

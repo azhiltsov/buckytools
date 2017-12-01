@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-import "github.com/Civil/buckytools/whisper"
+import "github.com/azhiltsov/buckytools/whisper"
 
 func whisperCreateData(path string, ts []*whisper.TimeSeriesPoint) error {
 	os.Remove(path) // Don't care if it fails

@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-import "github.com/Civil/buckytools/whisper"
+import "github.com/azhiltsov/buckytools/whisper"
 
 // fillArchive() is a private function that fills data points from srcWSP
 // into dstWsp.  Used by FIll()

@@ -10,9 +10,9 @@ import (
 	"strings"
 )
 
-import . "github.com/Civil/buckytools"
-import "github.com/Civil/buckytools/metrics"
-import "github.com/Civil/buckytools/hashing"
+import . "github.com/azhiltsov/buckytools"
+import "github.com/azhiltsov/buckytools/metrics"
+import "github.com/azhiltsov/buckytools/hashing"
 
 var metricsCache *metrics.MetricsCacheType
 var tmpDir string

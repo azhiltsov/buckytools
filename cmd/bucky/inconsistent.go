@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// import "github.com/Civil/buckytools/hashing"
+// import "github.com/azhiltsov/buckytools/hashing"
 
 func init() {
 	usage := "[options]"
