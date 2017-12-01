@@ -1,3 +1,44 @@
+buckytools (0.4.0) unstable; urgency=medium
+
+  * Support FNV1a hashing algorithm compatible with carbon-c-relay
+  * All server, port, and instance triples are now formatted as
+    HOST[:PORT][=INSTANCE]
+
+ -- Jack Neely <jjneely@42lines.net>  Thu, 17 Aug 2017 14:41:28 -0400
+
+buckytools (0.3.2) unstable; urgency=medium
+
+  * Support ogorek.Tuple types in parsing of pickle objects.  This
+    was added to ogorek when I updated the vendoring so that from Go
+    Tuples and Lists were different objects.
+  * Fix up tests
+
+ -- Jack Neely <jjneely@42lines.net>  Wed, 21 Jun 2017 17:28:58 -0400
+
+buckytools (0.3.1) unstable; urgency=medium
+
+  * Invert default behavior for deleting metrics in rebalance
+  * Fix tar/restore after Snappy changes
+  * Unit tests for bucky-pickle-relay
+  * Conform to Go best practices for repo layout
+  * Update vendored packages
+
+ -- Jack Neely <jjneely@42lines.net>  Wed, 21 Jun 2017 13:24:37 -0400
+
+buckytools (0.3.0) unstable; urgency=medium
+
+  * Package 0.3.0 adding Google Snappy compression support
+  * Verbose flag and cleanups of logging
+  * Much code clean up and unification
+
+ -- Jack Neely <jjneely@42lines.net>  Thu, 27 Apr 2017 16:06:45 -0400
+
+buckytools (0.2.0) unstable; urgency=medium
+
+  * Package 0.2.0 with jump support
+
+ -- Jack Neely <jjneely@42lines.net>  Mon, 24 Apr 2017 15:04:48 -0400
+
 buckytools (0.1.9) unstable; urgency=medium
 
   * bucky-sparsify

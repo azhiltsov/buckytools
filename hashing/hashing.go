@@ -2,11 +2,31 @@ package hashing
 
 import (
 	"crypto/md5"
+	"encoding/json"
 	"fmt"
 	//"log"
 	//"os"
+	"strconv"
 	"strings"
 )
+
+// Node is a server and instance value used in the hash ring.  A key is
+// mapped to one or more of the configured Node structs in the hash ring.
+type Node struct {
+	Server   string
+	Port     int
+	Instance string
+}
+
+// JSONRingType is a datastructure that identifies the name of the server
+// buckdy is running on and contains a slice of nodes which are
+// "server:instance" (where ":instance" is optional) formatted strings
+type JSONRingType struct {
+	Name     string
+	Nodes    []Node
+	Algo     string
+	Replicas int
+}
 
 // HashRing is an interface that allows us to plug in multiple hash ring
 // implementations.
@@ -38,13 +58,6 @@ type HashRing interface {
 	Nodes() []Node
 }
 
-// Node is a server and instance value used in the hash ring.  A key is
-// mapped to one or more of the configured Node structs in the hash ring.
-type Node struct {
-	Server   string
-	Instance string
-}
-
 // RingEntry is used to record the position of Nodes in the ring.  Not used
 // in all implementations.
 type RingEntry struct {
@@ -59,6 +72,15 @@ type CarbonHashRing struct {
 	replicas int
 }
 
+// String marshals a JSONRingType into its string representation
+func (j *JSONRingType) String() string {
+	blob, err := json.Marshal(j)
+	if err != nil {
+		return err.Error()
+	}
+	return string(blob)
+}
+
 // NewCarbonHashRing sets up a new CarbonHashRing and returns it.
 func NewCarbonHashRing() *CarbonHashRing {
 	var chr = new(CarbonHashRing)
@@ -71,15 +93,88 @@ func NewCarbonHashRing() *CarbonHashRing {
 
 // NewNode returns a node object setup with the given server string and
 // instance string.  None or empty instances should be represented by ""
-func NewNode(server, instance string) (n Node) {
+func NewNode(server string, port int, instance string) (n Node) {
 	n.Server = server
+	n.Port = port
 	n.Instance = instance
 	return n
 }
 
-// computeRingPosition takes a string and computes where that string lives in
-// the 16bit wide hash ring.
-func computeRingPosition(key string) (result int) {
+// NewNodeParser parses a HOST[:PORT][=INSTANCE] format string and builds a
+// Node object which is returned.  An error is returned if the string could
+// not be parsed.
+func NewNodeParser(s string) (Node, error) {
+	var (
+		state    int
+		hostname []rune
+		port     []rune
+		instance []rune
+
+		parsedPort int64
+		err        error
+	)
+
+	for _, v := range s {
+		switch state {
+		case 0:
+			// server name
+			if v == ':' {
+				state = 1
+			} else if v == '=' {
+				state = 2
+			} else {
+				hostname = append(hostname, v)
+			}
+		case 1:
+			// server:port
+			if v == '=' {
+				state = 2
+			} else if v == ':' {
+				return Node{}, fmt.Errorf("Error parsing port in %s", s)
+			} else {
+				port = append(port, v)
+			}
+		case 2:
+			// server:port:instance
+			if v == ':' || v == '=' {
+				return Node{}, fmt.Errorf("Error parsing instance in %s", s)
+			}
+			instance = append(instance, v)
+		default:
+			panic("FSM parsing failure")
+		}
+	}
+
+	if len(port) > 0 {
+		parsedPort, err = strconv.ParseInt(string(port), 0, 0)
+		if err != nil {
+			return Node{}, err
+		}
+		if parsedPort < 0 {
+			return Node{}, fmt.Errorf("Negative port number is illegal")
+		}
+	}
+
+	return Node{string(hostname), int(parsedPort), string(instance)}, nil
+}
+
+func NodeCmp(a, b Node) bool {
+	if a.Server != b.Server {
+		return false
+	}
+	if a.Port != b.Port {
+		return false
+	}
+	if a.Instance != b.Instance {
+		return false
+	}
+
+	return true
+}
+
+// computeCarbonRingPosition takes a string and computes where that
+// string lives in the 16bit wide hash ring.
+func computeCarbonRingPosition(key string) (result int) {
 	// digest is our full 64bit hash as a slice of 8 bytes
 	digest := md5.Sum([]byte(key))
 
@@ -168,10 +263,10 @@ func insertRing(ring []RingEntry, e RingEntry) []RingEntry {
 	return ring
 }
 
-// Node.KeyValue generates the string representation used in the hash
+// Node.CarbonKeyValue generates the string representation used in the hash
 // ring just as Graphite's Python code does.  Useful only for carbon
 // style hashrings.
-func (t Node) KeyValue() string {
+func (t Node) CarbonKeyValue() string {
 	if t.Instance == "" {
 		return fmt.Sprintf("('%s', None)", t.Server)
 	}
@@ -181,9 +276,9 @@ func (t Node) KeyValue() string {
 // Node.String returns a string representation of the Node struct
 func (t Node) String() string {
 	if t.Instance == "" {
-		return fmt.Sprintf("%s", t.Server)
+		return fmt.Sprintf("%s:%d=None", t.Server, t.Port)
 	}
-	return fmt.Sprintf("%s:%s", t.Server, t.Instance)
+	return fmt.Sprintf("%s:%d=%s", t.Server, t.Port, t.Instance)
 }
 
 func (t *CarbonHashRing) String() string {
@@ -205,12 +300,12 @@ func (t *CarbonHashRing) SetReplicas(r int) {
 }
 
 func (t *CarbonHashRing) AddNode(node Node) {
-	//log.Printf("insertRing(): %s", node.KeyValue())
+	//log.Printf("insertRing(): %s", node.CarbonKeyValue())
 	t.nodes = append(t.nodes, node)
 	for i := 0; i < t.replicas; i++ {
 		var e RingEntry
-		replica_key := fmt.Sprintf("%s:%d", node.KeyValue(), i)
-		e.position = computeRingPosition(replica_key)
+		replica_key := fmt.Sprintf("%s:%d", node.CarbonKeyValue(), i)
+		e.position = computeCarbonRingPosition(replica_key)
 		e.node = node
 		t.ring = insertRing(t.ring, e)
 	}
@@ -243,14 +338,14 @@ func (t *CarbonHashRing) GetNode(key string) Node {
 		panic("HashRing is empty")
 	}
 
-	e := RingEntry{computeRingPosition(key), NewNode(key, "")}
+	e := RingEntry{computeCarbonRingPosition(key), NewNode(key, 0, "")}
 	i := mod(bisectLeft(t.ring, e), len(t.ring))
 	//log.Printf("len(ring) = %d", len(t.ring))
 	//log.Printf("Bisect index for %s is %d", key, i)
 	//log.Printf("Ring position for %s is %x", key, e.position)
 	//fd, _ := os.Create("ring.golang")
 	//for r := range t.ring {
-	//	fd.Write([]byte(fmt.Sprintf("%s:%x\n", t.ring[r].node.KeyValue(), t.ring[r].position)))
+	//	fd.Write([]byte(fmt.Sprintf("%s:%x\n", t.ring[r].node.CarbonKeyValue(), t.ring[r].position)))
 	//}
 	//fd.Close()
 	return t.ring[i].node
@@ -263,7 +358,7 @@ func (t *CarbonHashRing) GetNodes(key string) []Node {
 
 	result := make([]Node, 0)
 	seen := make(map[string]bool)
-	e := RingEntry{computeRingPosition(key), NewNode(key, "")}
+	e := RingEntry{computeCarbonRingPosition(key), NewNode(key, 0, "")}
 	index := mod(bisectLeft(t.ring, e), len(t.ring))
 	last := index - 1
 
